@@ -18,7 +18,6 @@ SELECT SYSTEM$STREAM_HAS_DATA('SILVER_ORDERS_STREAM');
 -- be sure the pipeline_log was created in setup
 -- note: it should be created from parent to child
 SELECT * FROM CPG_SUPPLY_CHAIN.UTILS.PIPELINE_RUN_LOG LIMIT 5;
-
 -- Bronze
 CREATE OR REPLACE TASK TASK_LOAD_BRONZE
   WAREHOUSE = CPG_WH
