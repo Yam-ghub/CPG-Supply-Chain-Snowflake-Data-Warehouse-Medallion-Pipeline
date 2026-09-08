@@ -1,4 +1,6 @@
-# Smart_SupplyChain_Snowflake
+# CPG Supply Chain Data Warehouse
+## Snowflake Medallion Pipeline with Automated Orchestration & Power BI Analytics
+A production-style, end-to-end data engineering project simulating a Consumer Packaged Goods (CPG) supply chain analytics platform — built on Snowflake using medallion architecture (Bronze → Silver → Gold), automated with native Snowflake Task orchestration, and surfaced through a 3-page Power BI report covering profitability, discounting, and delivery performance.
 
 ## Setup
 -- 1. Warehouse
