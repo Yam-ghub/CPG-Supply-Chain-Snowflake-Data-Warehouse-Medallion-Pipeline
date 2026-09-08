@@ -14,6 +14,30 @@ This project models a realistic supply chain analytics pipeline for a CPG-style 
 - Finance-oriented data marts translating operational data into business metrics (margin, discount effectiveness, delivery risk exposure)
 - A 3-page Power BI report built on the curated Gold layer only
 
+## Architecture
+
+## Design Decisions
+ 
+- **Why `TRY_TO_...()` instead of hard casts?**
+A single malformed value in a 180K-row batch shouldn't fail the entire load. `TRY_...` functions convert bad values to `NULL`, which are then caught by explicit data-quality checks — a loud failure is deferred to a controlled validation step, not a silent pipeline crash.
+ 
+- **Why full-refresh for Gold instead of incremental `MERGE`?**
+The expensive part of incremental processing is protecting against reprocessing *large* raw data — that saving already happens at Bronze → Silver. Gold tables are derived from an already-clean, much smaller Silver table, so a full rebuild is cheap, simple to reason about, and avoids matching-key/upsert edge cases. Added pipeline complexity should be justified by an actual performance problem — here, it isn't.
+ 
+- **Why is `ORDER_ITEM_ID` the chosen grain, not `ORDER_ID`?**
+An order can contain multiple line items; deduplicating or aggregating at the wrong grain silently produces incorrect totals. `ORDER_ITEM_ID` is the true unique identifier of a row in this dataset and is used consistently as the dedup/merge key from Silver onward.
+ 
+- **Why does Bronze retain duplicate rows rather than deduplicating on load?**
+Bronze's purpose is raw lineage preservation, not correctness — Silver is where deduplication logic lives. This was validated directly.
+---
+
+## Validated Resilience
+ 
+Rather than assuming the incremental pipeline worked correctly, it was deliberately stress-tested:
+ 
+- **Overlapping file reload test:** a new batch file containing rows that overlapped with previously loaded data was introduced into the stage. Result: Bronze correctly retained both raw copies (duplicates present, as expected for a raw layer), while Silver's `ROW_NUMBER()`-based deduplication logic automatically resolved the duplication with zero manual intervention — confirmed via direct duplicate-count queries before and after.
+- **End-to-end trace test:** a synthetic order row was injected into a new staged file and traced through all three layers (Bronze → Silver → Gold) after a scheduled task run, confirming the full chain — file detection, incremental Bronze load, stream-triggered Silver merge, and Gold rebuild — functions correctly end-to-end, not just in isolated steps.
+
 ## Dataset
 Source: DataCo Smart Supply Chain Dataset — ~180,000 real-world-style order and shipping records, 53 columns, covering product categories, customer segments, order/shipping dates, shipping modes, discounts, and profit.
 ```Note on "real-world" data: this is a publicly available dataset representing realistic supply chain operations — not literal proprietary data from any named company. The CPG/P&G framing describes the industry context and use case this pipeline was designed to serve, not a claim about the data's origin.```
@@ -21,7 +45,7 @@ Order date range in the source data: January 2015 – January 2018.
 
 ## Data Model
  
-**Gold layer — star schema:**
+**Gold layer - star schema:**
  
 | Table | Grain | Description |
 |---|---|---|
@@ -41,28 +65,34 @@ Order date range in the source data: January 2015 – January 2018.
  
 ---
 
-## Design Decisions
+## Orchestration
  
-**Why `TRY_TO_...()` instead of hard casts?**
-A single malformed value in a 180K-row batch shouldn't fail the entire load. `TRY_...` functions convert bad values to `NULL`, which are then caught by explicit data-quality checks — a loud failure is deferred to a controlled validation step, not a silent pipeline crash.
+A three-task DAG, chained via `AFTER` dependencies:
  
-**Why full-refresh for Gold instead of incremental `MERGE`?**
-The expensive part of incremental processing is protecting against reprocessing *large* raw data — that saving already happens at Bronze → Silver. Gold tables are derived from an already-clean, much smaller Silver table, so a full rebuild is cheap, simple to reason about, and avoids matching-key/upsert edge cases. Added pipeline complexity should be justified by an actual performance problem — here, it isn't.
+```sql
+TASK_LOAD_BRONZE (root, CRON-scheduled)
+   └─► TASK_TRANSFORM_SILVER (WHEN stream has data → MERGE)
+          └─► TASK_REFRESH_GOLD (WHEN stream has data → full rebuild)
+```
  
-**Why is `ORDER_ITEM_ID` the chosen grain, not `ORDER_ID`?**
-An order can contain multiple line items; deduplicating or aggregating at the wrong grain silently produces incorrect totals. `ORDER_ITEM_ID` is the true unique identifier of a row in this dataset and is used consistently as the dedup/merge key from Silver onward.
- 
-**Why does Bronze retain duplicate rows rather than deduplicating on load?**
-Bronze's purpose is raw lineage preservation, not correctness — Silver is where deduplication logic lives. This was validated directly (see below).
- 
+- **`TASK_LOAD_BRONZE`** — scheduled via CRON, runs `COPY INTO`. Snowflake's built-in load-history tracking makes this idempotent — a previously loaded file is never reprocessed.
+- **`TASK_TRANSFORM_SILVER`** — triggered only when `SYSTEM$STREAM_HAS_DATA()` is true on the Bronze stream. Uses `MERGE` to upsert only new/changed rows into Silver — avoiding a full reprocess of the entire table on every run.
+- **`TASK_REFRESH_GOLD`** — triggered only when the Silver stream has data. Rebuilds the star schema and marts.
+- Every task run is logged to `UTILS.PIPELINE_RUN_LOG` (task name, layer, status, row count, timestamp) — basic pipeline observability.
+
 ---
 
-## Validated Resilience
+## Dashboards
  
-Rather than assuming the incremental pipeline worked correctly, it was deliberately stress-tested:
+A 3-page Power BI report, connected to the **Gold schema only**
  
-- **Overlapping file reload test:** a new batch file containing rows that overlapped with previously loaded data was introduced into the stage. Result: Bronze correctly retained both raw copies (duplicates present, as expected for a raw layer), while Silver's `ROW_NUMBER()`-based deduplication logic automatically resolved the duplication with zero manual intervention — confirmed via direct duplicate-count queries before and after.
-- **End-to-end trace test:** a synthetic order row was injected into a new staged file and traced through all three layers (Bronze → Silver → Gold) after a scheduled task run, confirming the full chain — file detection, incremental Bronze load, stream-triggered Silver merge, and Gold rebuild — functions correctly end-to-end, not just in isolated steps.
+1. **Executive Summary** — 5 headline KPIs (Total Sales, Total Profit, Overall Margin %, Late Delivery Rate %, Sales at Risk) + Top 5 Categories by Sales + Sales Trend Over Time. Scoped deliberately to a "5-second glance" — no more than 5–7 total visual elements.
+2. **Profitability** — margin by category and region, discount rate vs. margin scatter analysis, discount cost breakdown, and a profit-by-shipping-mode donut.
+3. **Delivery Performance** — late delivery rate and sales-at-risk by shipping mode and region, delivery status breakdown, and average days late.
+---
+<img src="placeholder" alt="star_schema" width="300">
+<img src="placeholder" alt="star_schema" width="300">
+<img src="placeholder" alt="star_schema" width="300">
 
 ### Setup
 -- 1. Warehouse
