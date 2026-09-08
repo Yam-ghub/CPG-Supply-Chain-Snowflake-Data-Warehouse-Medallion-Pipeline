@@ -16,6 +16,8 @@ This project models a realistic supply chain analytics pipeline for a CPG-style 
 
 ## Pipeline Architecture
 <img src="img/Project Visualization.png" alt="Pipeline architecture" width="800">
+
+---
 ## Design Decisions
  
 - **Why `TRY_TO_...()` instead of hard casts?**
