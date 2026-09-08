@@ -89,7 +89,7 @@ TASK_LOAD_BRONZE (root, CRON-scheduled)
 A 3-page Power BI report, connected to the **Gold schema only**
  
 1. **Executive Summary** — 5 headline KPIs (Total Sales, Total Profit, Overall Margin %, Late Delivery Rate %, Sales at Risk) + Top 5 Categories by Sales + Sales Trend Over Time. Scoped deliberately to a "5-second glance" — no more than 5–7 total visual elements.
-<img src="img/Executive Summary Dashboard.png" alt="star_schema" width="500">
+<img src="img/Executive Summary Dashboard.png" alt="star_schema" width="600">
 2. **Profitability** — margin by category and region, discount rate vs. margin scatter analysis, discount cost breakdown, and a profit-by-shipping-mode donut.
 <img src="placeholder" alt="star_schema" width="300">
 4. **Delivery Performance** — late delivery rate and sales-at-risk by shipping mode and region, delivery status breakdown, and average days late.
