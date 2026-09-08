@@ -14,8 +14,8 @@ This project models a realistic supply chain analytics pipeline for a CPG-style 
 - Finance-oriented data marts translating operational data into business metrics (margin, discount effectiveness, delivery risk exposure)
 - A 3-page Power BI report built on the curated Gold layer only
 
-## Architecture
-
+## Pipeline Architecture
+<img src="img/Project Visualization.png" alt="Pipeline architecture" width="300">
 ## Design Decisions
  
 - **Why `TRY_TO_...()` instead of hard casts?**
