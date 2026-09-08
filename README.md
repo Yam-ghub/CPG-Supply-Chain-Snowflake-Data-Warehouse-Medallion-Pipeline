@@ -14,6 +14,7 @@ This project models a realistic supply chain analytics pipeline for a CPG-style 
 - Finance-oriented data marts translating operational data into business metrics (margin, discount effectiveness, delivery risk exposure)
 - A 3-page Power BI report built on the curated Gold layer only
 
+---
 ## Pipeline Architecture
 <img src="img/Project Visualization.png" alt="Pipeline architecture" width="800">
 
@@ -22,7 +23,6 @@ This project models a realistic supply chain analytics pipeline for a CPG-style 
 | Bronze | Landing / Raw | Preserves raw lineage exactly as received — never queried for analysis |
 | Silver | Cleansed / Curated | First trustworthy layer — typed, deduplicated, intentionally filtered |
 | Gold | Presentation / Analytics | Business-ready, dimensionally modeled — the *only* layer exposed to BI tooling |
----
 
 ---
 ## Design Decisions
@@ -53,7 +53,7 @@ Source: DataCo Smart Supply Chain Dataset — ~180,000 real-world-style order an
 Order date range in the source data: January 2015 – January 2018.
 
 ## Data Model
- 
+
 **Gold layer - star schema:**
  
 | Table | Grain | Description |
@@ -71,7 +71,8 @@ Order date range in the source data: January 2015 – January 2018.
 | `MART_PROFIT_BY_CATEGORY_REGION` | Which categories/regions are actually profitable, not just high-selling? |
 | `MART_LATE_DELIVERY_IMPACT` | Which shipping modes/regions carry the most late-delivery risk, and what revenue is exposed? |
 | `MART_DISCOUNT_EFFECTIVENESS` | Which categories are discounted heavily without the margin to justify it? |
- 
+
+<img src="img/Model View Star Schema.png" alt="Star Schema" width="800"> 
 ---
 
 ## Orchestration
@@ -99,7 +100,7 @@ A 3-page Power BI report, connected to the **Gold schema only**
 <img src="img/Executive Summary Dashboard.png" alt="star_schema" width="600">
 2. **Profitability** — margin by category and region, discount rate vs. margin scatter analysis, discount cost breakdown, and a profit-by-shipping-mode donut.
 <img src="placeholder" alt="star_schema" width="300">
-4. **Delivery Performance** — late delivery rate and sales-at-risk by shipping mode and region, delivery status breakdown, and average days late.
+3. **Delivery Performance** — late delivery rate and sales-at-risk by shipping mode and region, delivery status breakdown, and average days late.
 <img src="placeholder" alt="star_schema" width="300">
 ---
 
