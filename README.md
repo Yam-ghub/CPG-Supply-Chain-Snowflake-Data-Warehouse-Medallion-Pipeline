@@ -1,6 +1,18 @@
 # CPG Supply Chain Data Warehouse
 ## Snowflake Medallion Pipeline with Automated Orchestration & Power BI Analytics
-A production-style, end-to-end data engineering project simulating a Consumer Packaged Goods (CPG) supply chain analytics platform — built on Snowflake using medallion architecture (Bronze → Silver → Gold), automated with native Snowflake Task orchestration, and surfaced through a 3-page Power BI report covering profitability, discounting, and delivery performance.
+A production-style, end-to-end data engineering project simulating a Consumer Packaged Goods (CPG) supply chain analytics platform built on Snowflake using medallion architecture (Bronze → Silver → Gold), automated with native Snowflake Task orchestration, and surfaced through a 3-page Power BI report covering profitability, discounting, and delivery performance.
+
+## Overview
+This project models a realistic supply chain analytics pipeline for a CPG-style organization the same category of business as Procter & Gamble, Healthy Options, or any product based company. It ingests raw order and logistics data, refines it through a three-layer medallion architecture, and exposes curated, business-ready data to both SQL analysts and BI tooling.
+
+### What this project demonstrates:
+- Cloud data warehouse design using Snowflake (staging, file formats, schemas, RBAC)
+- Medallion architecture (Bronze/Silver/Gold) with deliberate grain and data-quality decisions at each layer
+- Dimensional modeling (star schema: fact + conformed dimensions)
+- Change Data Capture via Snowflake Streams, feeding an incremental MERGE-based transformation
+- Automated orchestration via a scheduled Snowflake Task DAG with conditional execution and run logging
+- Finance-oriented data marts translating operational data into business metrics (margin, discount effectiveness, delivery risk exposure)
+- A 3-page Power BI report built on the curated Gold layer only
 
 ## Setup
 -- 1. Warehouse
