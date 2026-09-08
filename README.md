@@ -1,6 +1,6 @@
 # CPG Supply Chain Data Warehouse
 ## Snowflake Medallion Pipeline with Automated Orchestration & Power BI Analytics
-A production-style, end-to-end data engineering project simulating a Consumer Packaged Goods (CPG) supply chain analytics platform built on Snowflake using medallion architecture (Bronze → Silver → Gold), automated with native Snowflake Task orchestration, and surfaced through a 3-page Power BI report covering profitability, discounting, and delivery performance.
+A production-style, end-to-end data engineering project simulating a Consumer Packaged Goods (CPG) supply chain analytics platform — built on Snowflake using medallion architecture (Bronze → Silver → Gold), automated with native Snowflake Task orchestration, and surfaced through a 3-page Power BI report covering profitability, discounting, and delivery performance.
 
 ## Overview
 This project models a realistic supply chain analytics pipeline for a CPG-style organization the same category of business as Procter & Gamble, Healthy Options, or any product based company. It ingests raw order and logistics data, refines it through a three-layer medallion architecture, and exposes curated, business-ready data to both SQL analysts and BI tooling.
@@ -14,7 +14,57 @@ This project models a realistic supply chain analytics pipeline for a CPG-style 
 - Finance-oriented data marts translating operational data into business metrics (margin, discount effectiveness, delivery risk exposure)
 - A 3-page Power BI report built on the curated Gold layer only
 
-## Setup
+## Dataset
+Source: DataCo Smart Supply Chain Dataset — ~180,000 real-world-style order and shipping records, 53 columns, covering product categories, customer segments, order/shipping dates, shipping modes, discounts, and profit.
+```Note on "real-world" data: this is a publicly available dataset representing realistic supply chain operations — not literal proprietary data from any named company. The CPG/P&G framing describes the industry context and use case this pipeline was designed to serve, not a claim about the data's origin.```
+Order date range in the source data: January 2015 – January 2018.
+
+## Data Model
+ 
+**Gold layer — star schema:**
+ 
+| Table | Grain | Description |
+|---|---|---|
+| `FACT_ORDERS` | One row per order line item | Core transactional fact table — sales, profit, discount, shipping performance |
+| `DIM_PRODUCT` | One row per product | Product name, category, department, price |
+| `DIM_CUSTOMER` | One row per customer | Segment, city, state, country |
+| `DIM_DATE` | One row per calendar day | Generated calendar dimension (`GENERATOR` + `SEQ4`), 2015–2024 |
+| `DIM_SHIPPING_MODE` | One row per shipping mode | Reference dimension |
+ 
+**Finance marts:**
+ 
+| Mart | Answers |
+|---|---|
+| `MART_PROFIT_BY_CATEGORY_REGION` | Which categories/regions are actually profitable, not just high-selling? |
+| `MART_LATE_DELIVERY_IMPACT` | Which shipping modes/regions carry the most late-delivery risk, and what revenue is exposed? |
+| `MART_DISCOUNT_EFFECTIVENESS` | Which categories are discounted heavily without the margin to justify it? |
+ 
+---
+
+## Design Decisions
+ 
+**Why `TRY_TO_...()` instead of hard casts?**
+A single malformed value in a 180K-row batch shouldn't fail the entire load. `TRY_...` functions convert bad values to `NULL`, which are then caught by explicit data-quality checks — a loud failure is deferred to a controlled validation step, not a silent pipeline crash.
+ 
+**Why full-refresh for Gold instead of incremental `MERGE`?**
+The expensive part of incremental processing is protecting against reprocessing *large* raw data — that saving already happens at Bronze → Silver. Gold tables are derived from an already-clean, much smaller Silver table, so a full rebuild is cheap, simple to reason about, and avoids matching-key/upsert edge cases. Added pipeline complexity should be justified by an actual performance problem — here, it isn't.
+ 
+**Why is `ORDER_ITEM_ID` the chosen grain, not `ORDER_ID`?**
+An order can contain multiple line items; deduplicating or aggregating at the wrong grain silently produces incorrect totals. `ORDER_ITEM_ID` is the true unique identifier of a row in this dataset and is used consistently as the dedup/merge key from Silver onward.
+ 
+**Why does Bronze retain duplicate rows rather than deduplicating on load?**
+Bronze's purpose is raw lineage preservation, not correctness — Silver is where deduplication logic lives. This was validated directly (see below).
+ 
+---
+
+## Validated Resilience
+ 
+Rather than assuming the incremental pipeline worked correctly, it was deliberately stress-tested:
+ 
+- **Overlapping file reload test:** a new batch file containing rows that overlapped with previously loaded data was introduced into the stage. Result: Bronze correctly retained both raw copies (duplicates present, as expected for a raw layer), while Silver's `ROW_NUMBER()`-based deduplication logic automatically resolved the duplication with zero manual intervention — confirmed via direct duplicate-count queries before and after.
+- **End-to-end trace test:** a synthetic order row was injected into a new staged file and traced through all three layers (Bronze → Silver → Gold) after a scheduled task run, confirming the full chain — file detection, incremental Bronze load, stream-triggered Silver merge, and Gold rebuild — functions correctly end-to-end, not just in isolated steps.
+
+### Setup
 -- 1. Warehouse
 ```sql
 CREATE WAREHOUSE IF NOT EXISTS CPG_WH
@@ -589,3 +639,6 @@ FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
     TABLE_NAME => 'CPG_SUPPLY_CHAIN.BRONZE.BRONZE_ORDERS',
     START_TIME => DATEADD(DAY, -30, CURRENT_TIMESTAMP())
 ));
+```
+
+*Built as an end-to-end portfolio project to demonstrate production-style data engineering practices: layered data quality, dimensional modeling, automated orchestration, and BI delivery — grounded in a real CPG/finance business use case.*
