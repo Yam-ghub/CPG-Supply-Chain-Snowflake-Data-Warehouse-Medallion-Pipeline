@@ -1,5 +1,5 @@
-# CPG Supply Chain Data Warehouse
-## Snowflake Medallion Pipeline with Automated Orchestration & Power BI Analytics
+# CPG Supply Chain Data Warehouse ❄️
+- ### Snowflake Medallion Pipeline with Automated Orchestration & Power BI Analytics
 A production-style, end-to-end data engineering project simulating a Consumer Packaged Goods (CPG) supply chain analytics platform — built on Snowflake using medallion architecture (Bronze → Silver → Gold), automated with native Snowflake Task orchestration, and surfaced through a 3-page Power BI report covering profitability, discounting, and delivery performance.
 
 ## Overview
@@ -16,6 +16,13 @@ This project models a realistic supply chain analytics pipeline for a CPG-style 
 
 ## Pipeline Architecture
 <img src="img/Project Visualization.png" alt="Pipeline architecture" width="800">
+
+| Medallion term | Equivalent term | Purpose |
+|---|---|---|
+| Bronze | Landing / Raw | Preserves raw lineage exactly as received — never queried for analysis |
+| Silver | Cleansed / Curated | First trustworthy layer — typed, deduplicated, intentionally filtered |
+| Gold | Presentation / Analytics | Business-ready, dimensionally modeled — the *only* layer exposed to BI tooling |
+---
 
 ---
 ## Design Decisions
@@ -88,7 +95,7 @@ TASK_LOAD_BRONZE (root, CRON-scheduled)
  
 A 3-page Power BI report, connected to the **Gold schema only**
  
-1. **Executive Summary** — 5 headline KPIs (Total Sales, Total Profit, Overall Margin %, Late Delivery Rate %, Sales at Risk) + Top 5 Categories by Sales + Sales Trend Over Time. Scoped deliberately to a "5-second glance" — no more than 5–7 total visual elements.
+1. **Executive Summary** — 5 headline KPIs (Total Sales, Total Profit, Overall Margin %, Late Delivery Rate %, Sales at Risk) + Top 5 Categories by Sales + Sales Trend Over Time. Scoped deliberately to a "5-second glance" — no more than 5–8 total visual elements.
 <img src="img/Executive Summary Dashboard.png" alt="star_schema" width="600">
 2. **Profitability** — margin by category and region, discount rate vs. margin scatter analysis, discount cost breakdown, and a profit-by-shipping-mode donut.
 <img src="placeholder" alt="star_schema" width="300">
