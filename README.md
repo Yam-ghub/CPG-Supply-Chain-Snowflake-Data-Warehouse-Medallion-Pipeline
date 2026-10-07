@@ -89,7 +89,7 @@ TASK_LOAD_BRONZE (root, CRON-scheduled)
 - **`TASK_TRANSFORM_SILVER`** — triggered only when `SYSTEM$STREAM_HAS_DATA()` is true on the Bronze stream. Uses `MERGE` to upsert only new/changed rows into Silver — avoiding a full reprocess of the entire table on every run.
 - **`TASK_REFRESH_GOLD`** — triggered only when the Silver stream has data. Rebuilds the star schema and marts.
 - Every task run is logged to `UTILS.PIPELINE_RUN_LOG` (task name, layer, status, row count, timestamp) — basic pipeline observability.
-
+<img src="img/Model View Star Schema.png" alt="Star Schema" width="800"> 
 ---
 
 ## Dashboards
